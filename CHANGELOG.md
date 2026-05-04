@@ -7,6 +7,15 @@ Minor versions that are not listed in the changelog are bug fixes and small impr
 
 ## Fork: `@joshstovall/mantine-datatable`
 
+### 9.2.0 (2026-05-04)
+
+- Column virtualization now coexists with `pinFirstColumn` / `pinLastColumn` — pinned cells render outside the virtualizer so sticky positioning, striped backgrounds, and footer alignment all survive. Column groups (multi-row headers) remain incompatible and are logged + ignored.
+- Pinned cells get an opaque background under all row states (striped, plain, virt-suppressed parity rows). Fixes content from columns scrolling underneath bleeding through pinned columns.
+- `onHeaderCellClick` / `onHeaderCellContextMenu` handlers on `DataTableColumn` for header right-click actions.
+- Filter row cells forward context menu / click handlers via `DataTableHeaderCellClickHandler`.
+- `DataTablePagination` gains a jump-to-page numeric input for fast navigation in long datasets.
+- Footer / header / row internals refactored to thread `pinnedFirstIdx` / `pinnedLastIdx` so virt + pin compose without spacer-cell collisions.
+
 ### 9.0.0 (2026-05-04)
 
 Initial fork on top of upstream `8.3.13`. Targets Mantine v9 / React 19.2+.
