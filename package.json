@@ -1,6 +1,6 @@
 {
   "name": "@joshstovall/mantine-datatable",
-  "version": "9.0.0",
+  "version": "9.2.0",
   "description": "Community fork of mantine-datatable, updated for Mantine v9 with declarative column filters and opt-in row/column virtualization. The lightweight, dependency-free, dark-theme aware table component for Mantine UI data-rich applications, featuring asynchronous data loading, pagination, intuitive Gmail-style additive batch rows selection, column sorting, custom cell rendering, row expansion, nesting, context menus, and more.",
   "keywords": [
     "mantine",

@@ -1,11 +1,108 @@
-import { Box, Pagination, Text, rem, type MantineSpacing, type MantineStyleProp } from '@mantine/core';
+import { Box, Group, Pagination, Text, TextInput, rem, type MantineSize, type MantineSpacing, type MantineStyleProp } from '@mantine/core';
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 import { DataTablePageSizeSelector } from './DataTablePageSizeSelector';
 import { getPaginationCssVariables } from './cssVariables';
 import { useMediaQueryStringOrFunction } from './hooks';
 import type { DataTablePaginationProps } from './types';
-import type { PaginationRenderContext } from './types/PaginationRenderContext';
+import type { DataTableJumpToPageProps, PaginationRenderContext } from './types/PaginationRenderContext';
 import type { WithOptionalProperty, WithRequiredProperty } from './types/utils';
+
+/**
+ * Jump-to-page input. Always reflects the current `page` (re-syncs when the
+ * user clicks numbered/edge controls) and commits only on Enter / blur so
+ * we don't fire a query per keystroke. The input auto-selects on focus /
+ * click so a typed digit immediately overwrites the current page rather
+ * than appending.
+ */
+function JumpToPageInput({
+  page,
+  totalPages,
+  onPageChange,
+  size,
+  label,
+  suffix,
+  width,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: ((p: number) => void) | undefined;
+  size: MantineSize;
+} & DataTableJumpToPageProps) {
+  const [local, setLocal] = useState<string>(String(page));
+
+  // Outer page may change from numbered controls / nav buttons / page-size
+  // resets. Mirror those into the input so the displayed page never lies.
+  useEffect(() => {
+    setLocal(String(page));
+  }, [page]);
+
+  const commit = () => {
+    const trimmed = local.trim();
+    if (trimmed === '') {
+      setLocal(String(page));
+      return;
+    }
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed)) {
+      setLocal(String(page));
+      return;
+    }
+    const clamped = Math.max(1, Math.min(totalPages, parsed));
+    setLocal(String(clamped));
+    if (clamped !== page) onPageChange?.(clamped);
+  };
+
+  const selectAll = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    // requestAnimationFrame so iOS Safari respects the selection after a
+    // click — focus + select in the same task gets clobbered there.
+    const target = e.currentTarget;
+    requestAnimationFrame(() => target.select());
+  };
+
+  return (
+    <Group gap={6} wrap="nowrap" className="mantine-datatable-pagination-jump-to-page">
+      {label !== null ? (
+        <Text component="span" size={size} c="dimmed">
+          {label ?? 'Page'}
+        </Text>
+      ) : null}
+      <TextInput
+        value={local}
+        onChange={(e) => setLocal(e.currentTarget.value)}
+        onBlur={commit}
+        onFocus={selectAll}
+        onClick={selectAll}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+            (e.currentTarget as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            setLocal(String(page));
+            (e.currentTarget as HTMLInputElement).blur();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const next = Math.min(totalPages, (Number.parseInt(local, 10) || page) + 1);
+            setLocal(String(next));
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = Math.max(1, (Number.parseInt(local, 10) || page) - 1);
+            setLocal(String(next));
+          }
+        }}
+        size={size}
+        type="text"
+        inputMode="numeric"
+        aria-label="Jump to page"
+        styles={{ input: { width: width ?? 50, textAlign: 'center', paddingInline: 4 } }}
+      />
+      <Text component="span" size={size} c="dimmed">
+        {suffix ? suffix(totalPages) : `of ${totalPages}`}
+      </Text>
+    </Group>
+  );
+}
 
 type DataTablePaginationComponentProps = WithOptionalProperty<
   WithRequiredProperty<
@@ -123,6 +220,20 @@ export function DataTablePagination({
         {...props}
       />
     ),
+    JumpToPage: (props) =>
+      // Hide on single-page tables — there's nothing to jump to and the
+      // affordance only adds visual noise.
+      totalPages > 1 ? (
+        <JumpToPageInput
+          page={page}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          size={paginationSize}
+          {...props}
+        />
+      ) : (
+        <></>
+      ),
   };
 
   const ctx: PaginationRenderContext = {

@@ -72,6 +72,10 @@ type DataTableRowProps<T> = {
    *  Identity-stable across no-op scroll ticks so the row's React.memo bails.
    */
   visibleColumns: Set<number> | null;
+  /** Column index to render before the leading spacer (sticky-left). `-1` when off. */
+  pinnedFirstIdx: number;
+  /** Column index to render after the trailing spacer (sticky-right). `-1` when off. */
+  pinnedLastIdx: number;
 } & Pick<DataTableProps<T>, 'rowFactory'>;
 
 function DataTableRowInner<T>({
@@ -104,6 +108,8 @@ function DataTableRowInner<T>({
   selectionColumnStyle,
   rowFactory,
   visibleColumns,
+  pinnedFirstIdx,
+  pinnedLastIdx,
 }: Readonly<DataTableRowProps<T>>) {
   // Common case: no defaultColumnProps → reuse consumer reference unchanged.
   // Otherwise: compute the merged array once per (columns, defaults) change.
@@ -131,12 +137,32 @@ function DataTableRowInner<T>({
         />
       )}
 
+      {visibleColumns && pinnedFirstIdx >= 0
+        ? (() => {
+            const pc = mergedColumns[pinnedFirstIdx];
+            if (!pc || pc.hidden || pc.hiddenContent) return null;
+            return (
+              <DataTableRowCell<T>
+                key={pc.accessor as React.Key}
+                column={pc}
+                columnIndex={pinnedFirstIdx}
+                record={record}
+                index={index}
+                defaultRender={defaultColumnRender}
+                onCellClick={onCellClick}
+                onCellDoubleClick={onCellDoubleClick}
+                onCellContextMenu={onCellContextMenu}
+              />
+            );
+          })()
+        : null}
       {visibleColumns ? (
         <td className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
       ) : null}
       {mergedColumns.map((column, columnIndex) => {
         if (column.hidden || column.hiddenContent) return null;
         if (visibleColumns && !visibleColumns.has(columnIndex)) return null;
+        if (visibleColumns && (columnIndex === pinnedFirstIdx || columnIndex === pinnedLastIdx)) return null;
         return (
           <DataTableRowCell<T>
             key={column.accessor as React.Key}
@@ -154,6 +180,25 @@ function DataTableRowInner<T>({
       {visibleColumns ? (
         <td className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
       ) : null}
+      {visibleColumns && pinnedLastIdx >= 0
+        ? (() => {
+            const pc = mergedColumns[pinnedLastIdx];
+            if (!pc || pc.hidden || pc.hiddenContent) return null;
+            return (
+              <DataTableRowCell<T>
+                key={pc.accessor as React.Key}
+                column={pc}
+                columnIndex={pinnedLastIdx}
+                record={record}
+                index={index}
+                defaultRender={defaultColumnRender}
+                onCellClick={onCellClick}
+                onCellDoubleClick={onCellDoubleClick}
+                onCellContextMenu={onCellContextMenu}
+              />
+            );
+          })()
+        : null}
     </>
   );
 

@@ -57,8 +57,10 @@ export type UseDataTableVirtualizationOpts<T> = {
   recordsCount: number;
   /** Effective columns (post-flatten of any groups) in render order. */
   columns: DataTableColumn<T>[];
-  /** True when `pinFirstColumn` or `pinLastColumn` is set — disables column virt. */
-  hasPinnedColumns: boolean;
+  /** Whether the first non-hidden column should be pinned (sticky-left). */
+  pinFirstColumn: boolean;
+  /** Whether the last non-hidden column should be pinned (sticky-right). */
+  pinLastColumn: boolean;
   /** True when grouped headers are configured — disables column virt. */
   hasGroups: boolean;
   scrollViewportRef: React.RefObject<HTMLDivElement | null>;
@@ -71,8 +73,17 @@ export type UseDataTableVirtualizationResult = {
   columnVirtualizer: Virtualizer<HTMLDivElement, Element> | null;
   virtualRows: ReturnType<Virtualizer<HTMLDivElement, Element>['getVirtualItems']>;
   /** Set of indices INTO `effectiveColumns` (the array passed in) that are currently
-   *  visible. Content-stable identity — invariant #5. `null` when column virt is off. */
+   *  visible. Content-stable identity — invariant #5. `null` when column virt is off.
+   *  Always includes `pinnedFirstIdx` / `pinnedLastIdx` when those are set, since
+   *  pinned cells must always be in the DOM for sticky positioning to work. */
   visibleColumns: Set<number> | null;
+  /** Index in `effectiveColumns` of the column to render outside-and-before the
+   *  leading spacer when column virt is on. `-1` when no first-pin requested.
+   *  Resolves to the first non-hidden column. */
+  pinnedFirstIdx: number;
+  /** Index in `effectiveColumns` of the column to render outside-and-after the
+   *  trailing spacer when column virt is on. `-1` when no last-pin requested. */
+  pinnedLastIdx: number;
   leadingRowsHeight: number;
   trailingRowsHeight: number;
 };
@@ -103,15 +114,50 @@ export function useDataTableVirtualization<T>({
   config,
   recordsCount,
   columns,
-  hasPinnedColumns,
+  pinFirstColumn,
+  pinLastColumn,
   hasGroups,
   scrollViewportRef,
 }: UseDataTableVirtualizationOpts<T>): UseDataTableVirtualizationResult {
   const rowsEnabledRequested = !!config && config.rows !== false;
   const columnsEnabledRequested = !!config && config.columns === true;
-  const columnsCompatible = !hasPinnedColumns && !hasGroups;
+  // Pinning + column virt now coexist by rendering the pinned cells outside
+  // the leading/trailing spacers (see `pinnedFirstIdx` / `pinnedLastIdx`
+  // below) and excluding them from the virtualizer. Group headers still
+  // disable column virt — multi-row grouping doesn't survive horizontal
+  // windowing without a much larger refactor.
+  const columnsCompatible = !hasGroups;
   const rowsEnabled = rowsEnabledRequested;
   const columnsEnabled = columnsEnabledRequested && columnsCompatible;
+
+  // Resolve the actual column indices that get pinned. We use the first /
+  // last NON-HIDDEN column rather than `0` / `length - 1` so a hidden column
+  // at the edge doesn't accidentally become the pinned target. Returned to
+  // callers so they can render those cells outside the spacer window.
+  const { pinnedFirstIdx, pinnedLastIdx } = useMemo(() => {
+    let first = -1;
+    let last = -1;
+    if (pinFirstColumn) {
+      for (let i = 0; i < columns.length; i++) {
+        if (!columns[i]?.hidden) {
+          first = i;
+          break;
+        }
+      }
+    }
+    if (pinLastColumn) {
+      for (let i = columns.length - 1; i >= 0; i--) {
+        if (!columns[i]?.hidden) {
+          last = i;
+          break;
+        }
+      }
+    }
+    // Don't claim the same column twice — if there's a single visible
+    // column and both pins are set, prefer first-pin.
+    if (first !== -1 && first === last) last = -1;
+    return { pinnedFirstIdx: first, pinnedLastIdx: last };
+  }, [columns, pinFirstColumn, pinLastColumn]);
 
   const estimateRowHeight = config?.estimateRowHeight ?? 40;
   const estimateColumnWidth = config?.estimateColumnWidth ?? DEFAULT_ESTIMATE_COLUMN_WIDTH;
@@ -158,8 +204,10 @@ export function useDataTableVirtualization<T>({
 
   // ── COLUMN virtualizer ───────────────────────────────────────────────────
   // Map of virtualizable index → index in the original `columns` array.
-  // We virtualize all non-hidden columns. Hidden columns are kept out of the
-  // virtualizer entirely so the offset math sees only what's actually rendered.
+  // We virtualize non-hidden columns minus any pinned ones — pinned columns
+  // are always rendered (outside the spacer window in DataTableHeader / Row /
+  // Footer / FilterRow) so their widths must be excluded from the spacer
+  // offset math here.
   const { virtualizableIndices, virtualizableWidths } = useMemo(() => {
     const indices: number[] = [];
     const widths: number[] = [];
@@ -167,11 +215,12 @@ export function useDataTableVirtualization<T>({
     for (let i = 0; i < columns.length; i++) {
       const c = columns[i]!;
       if (c.hidden) continue;
+      if (i === pinnedFirstIdx || i === pinnedLastIdx) continue;
       indices.push(i);
       widths.push(widthOrEstimate(c, estimateColumnWidth));
     }
     return { virtualizableIndices: indices, virtualizableWidths: widths };
-  }, [columns, columnsEnabled, estimateColumnWidth]);
+  }, [columns, columnsEnabled, estimateColumnWidth, pinnedFirstIdx, pinnedLastIdx]);
 
   const colRangeExtractor = useCallback(
     (range: Range): number[] => {
@@ -262,6 +311,9 @@ export function useDataTableVirtualization<T>({
   }, [rowsEnabled, virtualRows, rowVirtualizer]);
 
   // ── Visible-column Set with content-stable identity (invariant #5) ───────
+  // Always seed with the pinned indices (when present) — pinned cells must
+  // stay in the DOM at all scroll positions for sticky-left / sticky-right
+  // to keep working.
   const prevVisibleSetRef = useRef<Set<number> | null>(null);
   const visibleColumns = useMemo<Set<number> | null>(() => {
     if (!columnsEnabled) {
@@ -269,6 +321,8 @@ export function useDataTableVirtualization<T>({
       return null;
     }
     const next = new Set<number>();
+    if (pinnedFirstIdx >= 0) next.add(pinnedFirstIdx);
+    if (pinnedLastIdx >= 0) next.add(pinnedLastIdx);
     for (const v of virtualCols) {
       const effIdx = virtualizableIndices[v.index];
       if (effIdx !== undefined) next.add(effIdx);
@@ -277,7 +331,7 @@ export function useDataTableVirtualization<T>({
     if (prev && setsHaveSameMembers(prev, next)) return prev;
     prevVisibleSetRef.current = next;
     return next;
-  }, [columnsEnabled, virtualCols, virtualizableIndices]);
+  }, [columnsEnabled, virtualCols, virtualizableIndices, pinnedFirstIdx, pinnedLastIdx]);
 
   // ── CSS-variable channel for spacer column widths (invariant #4) ─────────
   // Writes happen on every horizontal scroll tick — but they're DOM-only, so the
@@ -309,8 +363,7 @@ export function useDataTableVirtualization<T>({
     if (columnsEnabledRequested && !columnsCompatible) {
       // eslint-disable-next-line no-console
       console.warn(
-        '[mantine-datatable] virtualization.columns is incompatible with ' +
-          `${hasGroups ? 'column groups' : 'pinFirstColumn / pinLastColumn'} — column virtualization disabled.`
+        '[mantine-datatable] virtualization.columns is incompatible with column groups — column virtualization disabled.'
       );
     }
   }
@@ -322,6 +375,8 @@ export function useDataTableVirtualization<T>({
     columnVirtualizer: columnsEnabled ? columnVirtualizer : null,
     virtualRows,
     visibleColumns,
+    pinnedFirstIdx: columnsEnabled ? pinnedFirstIdx : -1,
+    pinnedLastIdx: columnsEnabled ? pinnedLastIdx : -1,
     leadingRowsHeight,
     trailingRowsHeight,
   };

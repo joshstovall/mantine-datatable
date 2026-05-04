@@ -22,9 +22,11 @@ export default async function RowAndColumnVirtualizationExamplePage() {
       <Txt>
         Set <Code>columns: true</Code> in addition to <Code>rows: true</Code> to virtualize
         horizontally as well — useful when you have ~30+ columns. Below: a 5,000 × 41-column
-        synthetic metrics table. Both axes virtualize independently, with off-viewport rows and
-        columns reserved by spacer cells whose widths are written as CSS variables on the
-        scroll viewport (so horizontal scroll never propagates as React props).
+        synthetic metrics table with <Code>pinFirstColumn</Code> and <Code>pinLastColumn</Code>{' '}
+        on, demonstrating that pinning coexists with column virt. Both axes virtualize
+        independently, with off-viewport rows and columns reserved by spacer cells whose widths
+        are written as CSS variables on the scroll viewport (so horizontal scroll never
+        propagates as React props).
       </Txt>
       <Txt>
         See also: <InternalLink to="/examples/row-virtualization">row-only virtualization</InternalLink>{' '}
@@ -34,10 +36,11 @@ export default async function RowAndColumnVirtualizationExamplePage() {
       <Txt>The code for this example is as follows:</Txt>
       <CodeBlock code={code} />
       <Txt info title="Constraints">
-        Column virtualization is incompatible with <Code>pinFirstColumn</Code> /{' '}
-        <Code>pinLastColumn</Code> and with column groups (multi-row headers) — those combos are
-        logged + ignored. Every virtualizable column should declare a numeric <Code>width</Code>;
-        the table is forced to <Code>table-layout: fixed</Code> when virt is on.
+        Column virtualization coexists with <Code>pinFirstColumn</Code> / <Code>pinLastColumn</Code>{' '}
+        (pinned cells render outside the virtualizer) but is incompatible with column groups
+        (multi-row headers) — that combo is logged + ignored. Every virtualizable column should
+        declare a numeric <Code>width</Code>; the table is forced to{' '}
+        <Code>table-layout: fixed</Code> when virt is on.
       </Txt>
       <PageNavigation of={PATH} />
     </>

@@ -38,12 +38,15 @@
 }
 
 /* Mantine's default striping fires on `:nth-of-type` and would now double-color rows
-   that already match our attribute rule. Suppress it inside virt-enabled tables. */
-.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(odd):not([data-stripe='odd']),
-.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(odd):not([data-stripe='odd']),
-.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(even):not([data-stripe='even']),
-.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(even):not([data-stripe='even']) {
-  background: transparent !important;
+   that already match our attribute rule. Suppress it inside virt-enabled tables.
+   Use the table's body color (not `transparent`) so sticky pinned cells — which
+   inherit row background — don't reveal the content of cells scrolling underneath. */
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr[data-row-index]:nth-of-type(odd):not([data-stripe='odd']),
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr[data-row-index]:nth-of-type(odd):not([data-stripe='odd']),
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr[data-row-index]:nth-of-type(even):not([data-stripe='even']),
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr[data-row-index]:nth-of-type(even):not([data-stripe='even']) {
+  background-color: var(--mantine-datatable-background-color) !important;
+  background-image: none !important;
 }
 
 /* Spacer rows reserve vertical space for the virtualized off-viewport rows.

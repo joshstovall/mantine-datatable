@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Center, Flex, Group, TableTh, type MantineStyleProp, type MantineTheme } from '@mantine/core';
 import clsx from 'clsx';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useDataTableColumnsContext } from './DataTableColumns.context';
 import { DataTableHeaderCellFilter } from './DataTableHeaderCellFilter';
 import { DataTableResizableHeaderHandle } from './DataTableResizableHeaderHandle';
@@ -9,7 +9,7 @@ import { IconArrowUp } from './icons/IconArrowUp';
 import { IconArrowsVertical } from './icons/IconArrowsVertical';
 import { IconGripVertical } from './icons/IconGripVertical';
 import { IconX } from './icons/IconX';
-import type { DataTableColumn, DataTableSortProps } from './types';
+import type { DataTableColumn, DataTableHeaderCellClickHandler, DataTableSortProps } from './types';
 import { ELLIPSIS, NOWRAP, TEXT_ALIGN_CENTER, TEXT_ALIGN_LEFT, TEXT_ALIGN_RIGHT } from './utilityClasses';
 import { humanize } from './utils';
 
@@ -21,11 +21,18 @@ type DataTableHeaderCellProps<T> = {
   sortStatus: DataTableSortProps<T>['sortStatus'];
   sortIcons: DataTableSortProps<T>['sortIcons'];
   onSortStatusChange: DataTableSortProps<T>['onSortStatusChange'];
+  /** Full column descriptor — needed only to build the `onHeaderCellContextMenu` payload. */
+  column: DataTableColumn<T>;
+  /** Position of this column in the original `columns` array. */
+  columnIndex: number;
+  /** Right-click handler from `<DataTable>` props. */
+  onHeaderCellContextMenu: DataTableHeaderCellClickHandler<T> | undefined;
 } & Pick<
   DataTableColumn<T>,
   | 'accessor'
   | 'sortable'
   | 'draggable'
+  | 'hideDragHandle'
   | 'toggleable'
   | 'resizable'
   | 'textAlign'
@@ -45,6 +52,7 @@ export function DataTableHeaderCell<T>({
   title,
   sortable,
   draggable,
+  hideDragHandle,
   toggleable,
   resizable,
   sortIcons,
@@ -57,19 +65,55 @@ export function DataTableHeaderCell<T>({
   filterPopoverDisableClickOutside,
   filtering,
   sortKey,
+  column,
+  columnIndex,
+  onHeaderCellContextMenu,
 }: DataTableHeaderCellProps<T>) {
   const { setSourceColumn, setTargetColumn, swapColumns, setColumnsToggle } = useDataTableColumnsContext();
   const [dragOver, setDragOver] = useState<boolean>(false);
   const columnRef = useRef<HTMLTableCellElement | null>(null);
+  // Capture the original mousedown target on the <th>. Native HTML5
+  // dragstart's `event.target` is the draggable ancestor (the inner
+  // <Flex>), not the actual click target — so we record it here to
+  // support the `[data-no-drag]` opt-out below.
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleContextMenu = useMemo<((e: React.MouseEvent) => void) | undefined>(
+    () =>
+      onHeaderCellContextMenu
+        ? (event: React.MouseEvent) => {
+            event.stopPropagation();
+            onHeaderCellContextMenu({ event, column, columnIndex });
+          }
+        : undefined,
+    [onHeaderCellContextMenu, column, columnIndex]
+  );
 
   if (!useMediaQueryStringOrFunction(visibleMediaQuery)) return null;
   const text = title ?? humanize(accessor as string);
   const tooltip = typeof text === 'string' ? text : undefined;
 
+  // Returns true if `node` (or any ancestor up to but not including the
+  // header `<th>`) carries `data-no-drag`. Used to skip both column-reorder
+  // drag and click-to-sort when the user is interacting with an explicit
+  // no-drag region (e.g. an inline filter input rendered in the title).
+  const isNoDragRegion = (node: EventTarget | null): boolean => {
+    if (!(node instanceof HTMLElement)) return false;
+    let cursor: HTMLElement | null = node;
+    while (cursor && cursor !== columnRef.current) {
+      if (cursor.dataset?.noDrag != null) return true;
+      cursor = cursor.parentElement;
+    }
+    return false;
+  };
+
   const sortAction =
     sortable && onSortStatusChange
       ? (e?: React.BaseSyntheticEvent) => {
           if (e?.defaultPrevented) return;
+          // Bail when the click originated inside a `[data-no-drag]` region
+          // so filter inputs / chips inside the header don't toggle sort.
+          if (isNoDragRegion(e?.target ?? null)) return;
 
           onSortStatusChange({
             sortKey,
@@ -85,6 +129,14 @@ export function DataTableHeaderCell<T>({
       : undefined;
 
   const handleColumnDragStart = (e: React.DragEvent) => {
+    // Cancel the column-reorder drag when the user-initiated gesture
+    // started in a `[data-no-drag]` region. Native dragstart's
+    // `event.target` is the draggable ancestor, so we use the mousedown
+    // target captured on the <th> below.
+    if (isNoDragRegion(mouseDownTargetRef.current)) {
+      e.preventDefault();
+      return;
+    }
     e.stopPropagation();
     setSourceColumn(accessor as string);
     setDragOver(false);
@@ -145,6 +197,10 @@ export function DataTableHeaderCell<T>({
       tabIndex={sortable ? 0 : undefined}
       onClick={sortAction}
       onKeyDown={(e) => e.key === 'Enter' && sortAction?.()}
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onContextMenu={handleContextMenu}
       ref={columnRef}
     >
       <Group className="mantine-datatable-header-cell-sortable-group" justify="space-between" wrap="nowrap">
@@ -162,7 +218,7 @@ export function DataTableHeaderCell<T>({
           onDrop={draggable ? handleColumnDrop : undefined}
           onDragLeave={draggable ? handleColumnDragLeave : undefined}
         >
-          {draggable ? (
+          {draggable && !hideDragHandle ? (
             <Center role="img" aria-label="Drag column">
               <ActionIcon
                 className="mantine-datatable-header-cell-draggable-action-icon"

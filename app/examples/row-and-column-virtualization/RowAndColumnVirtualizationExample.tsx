@@ -62,6 +62,8 @@ export function RowAndColumnVirtualizationExample() {
       withTableBorder
       withColumnBorders
       striped
+      pinFirstColumn
+      pinLastColumn
       records={records}
       columns={columns}
       virtualization={{

@@ -89,6 +89,16 @@
   white-space: nowrap;
 }
 
+/* Body rows need an opaque base when columns are pinned. Mantine's Table.css sets
+   `tr { background-color: transparent }`; cells use `background: inherit`, so pinned
+   sticky cells would otherwise reveal the content of cells scrolling underneath them.
+   Scoped to data-row-index so virt spacer rows stay transparent. Striped/hover/
+   selected rules override via the cascade. */
+.mantine-datatable-pin-first-column .mantine-datatable-table tbody tr[data-row-index],
+.mantine-datatable-pin-last-column .mantine-datatable-table tbody tr[data-row-index] {
+  background-color: var(--mantine-datatable-background-color);
+}
+
 /* Allow overflow for pinned cells so the ::after shadow pseudo-element is not clipped.
    This overrides overflow: hidden from resizable columns (th) and ellipsis (td). */
 .mantine-datatable-pin-first-column.mantine-datatable-resizable-columns th:first-of-type,

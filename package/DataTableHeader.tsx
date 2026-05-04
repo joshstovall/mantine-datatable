@@ -24,6 +24,7 @@ import type {
   DataTableColumn,
   DataTableColumnGroup,
   DataTableFiltersValue,
+  DataTableHeaderCellClickHandler,
   DataTableSelectionTrigger,
   DataTableSortProps,
   DataTableWithFilterRow,
@@ -53,9 +54,17 @@ type DataTableHeaderProps<T> = {
   filters: DataTableFiltersValue | undefined;
   onFiltersChange: ((next: DataTableFiltersValue) => void) | undefined;
   withFilterRow: DataTableWithFilterRow;
+  onHeaderCellContextMenu: DataTableHeaderCellClickHandler<T> | undefined;
+  onFilterCellContextMenu: DataTableHeaderCellClickHandler<T> | undefined;
   /** When set (column virt on) the title row renders only columns whose index is in
    *  the Set, flanked by leading/trailing spacer `<th>`s sized via CSS variables. */
   visibleColumns: Set<number> | null;
+  /** Column index to render before the leading spacer (sticky-left). `-1` when off.
+   *  Lets the existing `:first-of-type` pinning CSS keep matching even with column
+   *  virt active, without needing to switch to attribute-based selectors. */
+  pinnedFirstIdx: number;
+  /** Column index to render after the trailing spacer (sticky-right). `-1` when off. */
+  pinnedLastIdx: number;
   ref: React.Ref<HTMLTableSectionElement>;
 };
 
@@ -82,7 +91,11 @@ export function DataTableHeader<T>({
   filters,
   onFiltersChange,
   withFilterRow,
+  onHeaderCellContextMenu,
+  onFilterCellContextMenu,
   visibleColumns,
+  pinnedFirstIdx,
+  pinnedLastIdx,
   ref,
 }: DataTableHeaderProps<T>) {
   const maxGroupDepth = groups ? getMaxGroupDepth(groups) : 0;
@@ -152,99 +165,134 @@ export function DataTableHeader<T>({
 
       <TableTr>
         {!groups && allRecordsSelectorCell}
-        {visibleColumns ? (
-          <th className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
-        ) : null}
 
-        {columns.map(({ hidden, ...columnProps }, index) => {
-          if (hidden) return null;
-          if (visibleColumns && !visibleColumns.has(index)) return null;
+        {/*
+          Per-column header cell renderer. Pulled into a closure so the
+          three render slots (pinned-first / virt window / pinned-last)
+          all funnel through the same code. `index` is the index in the
+          original `columns` array — the cell ignores virt windowing and
+          renders unconditionally.
+        */}
+        {(() => {
+          const renderHeaderCell = (index: number) => {
+            const column = columns[index];
+            if (!column || column.hidden) return null;
 
-          const {
-            accessor,
-            visibleMediaQuery,
-            textAlign,
-            width,
-            title,
-            sortable,
-            draggable,
-            toggleable,
-            resizable,
-            titleClassName,
-            titleStyle,
-            filter,
-            filterPopoverProps,
-            filterPopoverDisableClickOutside,
-            filtering,
-            sortKey,
-            columnFilter,
-          } = { ...defaultColumnProps, ...columnProps };
+            const { hidden: _hidden, ...columnProps } = column;
+            void _hidden;
+            const mergedColumn = { ...defaultColumnProps, ...columnProps } as DataTableColumn<T>;
+            const {
+              accessor,
+              visibleMediaQuery,
+              textAlign,
+              width,
+              title,
+              sortable,
+              draggable,
+              hideDragHandle,
+              toggleable,
+              resizable,
+              titleClassName,
+              titleStyle,
+              filter,
+              filterPopoverProps,
+              filterPopoverDisableClickOutside,
+              filtering,
+              sortKey,
+              columnFilter,
+            } = mergedColumn;
 
-          let resolvedFilter = filter;
-          let resolvedFiltering = filtering;
+            let resolvedFilter = filter;
+            let resolvedFiltering = filtering;
 
-          if (columnFilter && resolvedFilter === undefined) {
-            const target = columnFilter.displayIn ?? 'cell';
-            if (target === 'popover' || target === 'both') {
-              const accessorString = accessor as string;
-              const labelText =
-                columnFilter.label ?? (typeof title === 'string' ? title : humanize(accessorString));
-              resolvedFilter = ({ close }) => (
-                <ColumnFilterRenderer
-                  config={columnFilter}
-                  value={filters?.[accessorString]}
-                  setValue={(next: unknown) => {
-                    if (!onFiltersChange) return;
-                    const current = filters ?? {};
-                    if (next === undefined) {
-                      if (!(accessorString in current)) return;
-                      const { [accessorString]: _removed, ...rest } = current;
-                      onFiltersChange(rest);
-                    } else {
-                      onFiltersChange({ ...current, [accessorString]: next });
+            if (columnFilter && resolvedFilter === undefined) {
+              const target = columnFilter.displayIn ?? 'cell';
+              if (target === 'popover' || target === 'both') {
+                const accessorString = accessor as string;
+                const labelText =
+                  columnFilter.label ?? (typeof title === 'string' ? title : humanize(accessorString));
+                resolvedFilter = ({ close }) => (
+                  <ColumnFilterRenderer
+                    config={columnFilter}
+                    value={filters?.[accessorString]}
+                    setValue={(next: unknown) => {
+                      if (!onFiltersChange) return;
+                      const current = filters ?? {};
+                      if (next === undefined) {
+                        if (!(accessorString in current)) return;
+                        const { [accessorString]: _removed, ...rest } = current;
+                        onFiltersChange(rest);
+                      } else {
+                        onFiltersChange({ ...current, [accessorString]: next });
+                      }
+                    }}
+                    close={close}
+                    target="popover"
+                    ariaLabel={
+                      typeof labelText === 'string' ? `Filter ${labelText}` : `Filter ${accessorString}`
                     }
-                  }}
-                  close={close}
-                  target="popover"
-                  ariaLabel={typeof labelText === 'string' ? `Filter ${labelText}` : `Filter ${accessorString}`}
-                />
-              );
+                  />
+                );
+              }
             }
-          }
 
-          if (columnFilter && resolvedFiltering === undefined) {
-            resolvedFiltering = isAccessorFiltering(filters, accessor as string);
-          }
+            if (columnFilter && resolvedFiltering === undefined) {
+              resolvedFiltering = isAccessorFiltering(filters, accessor as string);
+            }
 
+            return (
+              <DataTableHeaderCell<T>
+                key={accessor as React.Key}
+                accessor={accessor}
+                className={titleClassName}
+                style={titleStyle}
+                visibleMediaQuery={visibleMediaQuery}
+                textAlign={textAlign}
+                width={width}
+                title={title}
+                sortable={sortable}
+                draggable={draggable}
+                hideDragHandle={hideDragHandle}
+                toggleable={toggleable}
+                // we won't display the resize handle for the last column to avoid overflow render issues
+                resizable={resizable && index < columns.length - 1}
+                sortStatus={sortStatus}
+                sortIcons={sortIcons}
+                sortKey={sortKey}
+                onSortStatusChange={onSortStatusChange}
+                filter={resolvedFilter}
+                filterPopoverProps={filterPopoverProps}
+                filterPopoverDisableClickOutside={filterPopoverDisableClickOutside}
+                filtering={resolvedFiltering}
+                column={mergedColumn}
+                columnIndex={index}
+                onHeaderCellContextMenu={onHeaderCellContextMenu}
+              />
+            );
+          };
+
+          // Render order with column virt + pinning:
+          //   [pinned-first] [leading-spacer] [virt window cells] [trailing-spacer] [pinned-last]
+          // — keeps the existing `:first-of-type` / `:last-of-type` pin
+          //   selectors matching the right elements.
           return (
-            <DataTableHeaderCell<T>
-              key={accessor as React.Key}
-              accessor={accessor}
-              className={titleClassName}
-              style={titleStyle}
-              visibleMediaQuery={visibleMediaQuery}
-              textAlign={textAlign}
-              width={width}
-              title={title}
-              sortable={sortable}
-              draggable={draggable}
-              toggleable={toggleable}
-              // we won't display the resize handle for the last column to avoid overflow render issues
-              resizable={resizable && index < columns.length - 1}
-              sortStatus={sortStatus}
-              sortIcons={sortIcons}
-              sortKey={sortKey}
-              onSortStatusChange={onSortStatusChange}
-              filter={resolvedFilter}
-              filterPopoverProps={filterPopoverProps}
-              filterPopoverDisableClickOutside={filterPopoverDisableClickOutside}
-              filtering={resolvedFiltering}
-            />
+            <>
+              {visibleColumns && pinnedFirstIdx >= 0 ? renderHeaderCell(pinnedFirstIdx) : null}
+              {visibleColumns ? (
+                <th className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
+              ) : null}
+              {columns.map((_, index) => {
+                if (visibleColumns && !visibleColumns.has(index)) return null;
+                if (visibleColumns && (index === pinnedFirstIdx || index === pinnedLastIdx)) return null;
+                return renderHeaderCell(index);
+              })}
+              {visibleColumns ? (
+                <th className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
+              ) : null}
+              {visibleColumns && pinnedLastIdx >= 0 ? renderHeaderCell(pinnedLastIdx) : null}
+            </>
           );
-        })}
-        {visibleColumns ? (
-          <th className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
-        ) : null}
+        })()}
       </TableTr>
       {(() => {
         if (withFilterRow === false) return null;
@@ -263,7 +311,10 @@ export function DataTableHeader<T>({
             selectionVisible={selectionVisible}
             filters={filters}
             onFiltersChange={onFiltersChange}
+            onFilterCellContextMenu={onFilterCellContextMenu}
             visibleColumns={visibleColumns}
+            pinnedFirstIdx={pinnedFirstIdx}
+            pinnedLastIdx={pinnedLastIdx}
           />
         );
       })()}

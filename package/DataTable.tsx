@@ -135,6 +135,8 @@ export function DataTable<T>({
   filters,
   onFiltersChange,
   withFilterRow = 'auto',
+  onHeaderCellContextMenu,
+  onFilterCellContextMenu,
   virtualization,
   dataTableRef,
   ...otherProps
@@ -190,7 +192,8 @@ export function DataTable<T>({
     config: virtualizationConfig,
     recordsCount: records?.length ?? 0,
     columns: effectiveColumns,
-    hasPinnedColumns: !!pinFirstColumn || !!pinLastColumn,
+    pinFirstColumn: !!pinFirstColumn,
+    pinLastColumn: !!pinLastColumn,
     hasGroups: !!groups,
     scrollViewportRef: refs.scrollViewport as RefObject<HTMLDivElement | null>,
   });
@@ -417,7 +420,11 @@ export function DataTable<T>({
                     filters={filters}
                     onFiltersChange={onFiltersChange}
                     withFilterRow={withFilterRow}
+                    onHeaderCellContextMenu={onHeaderCellContextMenu}
+                    onFilterCellContextMenu={onFilterCellContextMenu}
                     visibleColumns={virt.visibleColumns}
+                    pinnedFirstIdx={virt.pinnedFirstIdx}
+                    pinnedLastIdx={virt.pinnedLastIdx}
                   />
                 </DataTableColumnsProvider>
               )}
@@ -504,6 +511,8 @@ export function DataTable<T>({
                         idAccessor={idAccessor as string}
                         rowFactory={rowFactory}
                         visibleColumns={virt.visibleColumns}
+                        pinnedFirstIdx={virt.pinnedFirstIdx}
+                        pinnedLastIdx={virt.pinnedLastIdx}
                       />
                     );
                   })
@@ -531,6 +540,8 @@ export function DataTable<T>({
                   selectionVisible={selectionColumnVisible}
                   selectorCellShadowVisible={selectorCellShadowVisible}
                   visibleColumns={virt.visibleColumns}
+                  pinnedFirstIdx={virt.pinnedFirstIdx}
+                  pinnedLastIdx={virt.pinnedLastIdx}
                 />
               )}
             </Table>

@@ -12,6 +12,7 @@ import type { DataTableColumnProps } from './DataTableColumnProps';
 import type { DataTableDefaultColumnProps } from './DataTableDefaultColumnProps';
 import type { DataTableEmptyStateProps } from './DataTableEmptyStateProps';
 import type { DataTableFiltersValue, DataTableWithFilterRow } from './DataTableFilters';
+import type { DataTableHeaderCellClickHandler } from './DataTableHeaderCellClickHandler';
 import type { DataTableLoaderProps } from './DataTableLoaderProps';
 import type { DataTableRef } from './DataTableRef';
 import type { DataTableVirtualizationProps } from './DataTableVirtualizationProps';
@@ -186,6 +187,27 @@ export type DataTableProps<T = Record<string, unknown>> = {
    * as properties.
    */
   onRowContextMenu?: DataTableRowClickHandler<T>;
+
+  /**
+   * Function to call when the user right-clicks on a column header cell.
+   * Receives the click event, the column descriptor and the column's index
+   * in the original `columns` array.
+   *
+   * Pair with mantine-contextmenu (or any menu library) to wire per-column
+   * actions like sort, hide, or copy-field-name.
+   */
+  onHeaderCellContextMenu?: DataTableHeaderCellClickHandler<T>;
+
+  /**
+   * Function to call when the user right-clicks on a filter cell (the
+   * inline filter row beneath the column titles). Receives the click event,
+   * the column descriptor and the column's index in the original `columns`
+   * array.
+   *
+   * Useful for a "clear this filter / copy filter value / clear all filters"
+   * menu without each consumer wiring its own per-cell handler.
+   */
+  onFilterCellContextMenu?: DataTableHeaderCellClickHandler<T>;
 
   /**
    * Defines the row expansion behavior.

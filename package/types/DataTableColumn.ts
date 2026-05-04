@@ -42,6 +42,14 @@ export type DataTableColumn<T = Record<string, unknown>> = {
   draggable?: boolean;
 
   /**
+   * If set to true alongside `draggable`, the grip-vertical icon is hidden
+   * but the column header remains a drag source. Use this when the drag
+   * affordance is provided some other way (e.g. the whole title row is the
+   * grab target) and the icon would only add visual noise.
+   */
+  hideDragHandle?: boolean;
+
+  /**
    * If set to true, the column can be toggled.
    */
   toggleable?: boolean;
