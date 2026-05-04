@@ -7,7 +7,7 @@ Minor versions that are not listed in the changelog are bug fixes and small impr
 
 ## Fork: `@joshstovall/mantine-datatable`
 
-### 9.0.0-fork.1 (2026-05-04)
+### 9.0.0 (2026-05-04)
 
 Initial fork on top of upstream `8.3.13`. Targets Mantine v9 / React 19.2+.
 
