@@ -131,6 +131,9 @@ export function DataTable<T>({
   styles,
   rowFactory,
   tableWrapper,
+  filters,
+  onFiltersChange,
+  withFilterRow = 'auto',
   ...otherProps
 }: DataTableProps<T>) {
   const effectiveColumns = useMemo(() => {
@@ -339,6 +342,9 @@ export function DataTable<T>({
                     selectionColumnClassName={selectionColumnClassName}
                     selectionColumnStyle={selectionColumnStyle}
                     withColumnBorders={otherProps.withColumnBorders}
+                    filters={filters}
+                    onFiltersChange={onFiltersChange}
+                    withFilterRow={withFilterRow}
                   />
                 </DataTableColumnsProvider>
               )}

@@ -168,6 +168,11 @@ export const ROUTES: RouteInfo[] = [
     description: `Example: searching and filtering data with ${PRODUCT_NAME}`,
   },
   {
+    href: '/examples/declarative-column-filters',
+    title: 'Declarative column filters',
+    description: `Example: declarative columnFilter config with ${PRODUCT_NAME}`,
+  },
+  {
     href: '/examples/records-selection',
     title: 'Records selection',
     description: `Example: how to enable multiple records selection on ${PRODUCT_NAME}`,

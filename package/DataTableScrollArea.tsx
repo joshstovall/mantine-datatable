@@ -18,18 +18,20 @@ export function DataTableScrollArea({
   scrollAreaProps,
 }: DataTableScrollAreaProps) {
   return (
-    <ScrollArea
-      {...scrollAreaProps}
-      viewportRef={viewportRef}
-      classNames={{
-        root: 'mantine-datatable-scroll-area',
-        scrollbar: 'mantine-datatable-scroll-area-scrollbar',
-        thumb: 'mantine-datatable-scroll-area-thumb',
-        corner: 'mantine-datatable-scroll-area-corner',
-      }}
-      onScrollPositionChange={onScrollPositionChange}
-    >
-      {children}
+    <>
+      <ScrollArea
+        {...scrollAreaProps}
+        viewportRef={viewportRef}
+        classNames={{
+          root: 'mantine-datatable-scroll-area',
+          scrollbar: 'mantine-datatable-scroll-area-scrollbar',
+          thumb: 'mantine-datatable-scroll-area-thumb',
+          corner: 'mantine-datatable-scroll-area-corner',
+        }}
+        onScrollPositionChange={onScrollPositionChange}
+      >
+        {children}
+      </ScrollArea>
       <Box className={clsx('mantine-datatable-scroll-area-shadow', 'mantine-datatable-scroll-area-top-shadow')} />
       <div
         className={clsx('mantine-datatable-scroll-area-shadow', 'mantine-datatable-scroll-area-left-shadow', {
@@ -42,6 +44,6 @@ export function DataTableScrollArea({
         })}
       />
       <Box className={clsx('mantine-datatable-scroll-area-shadow', 'mantine-datatable-scroll-area-bottom-shadow')} />
-    </ScrollArea>
+    </>
   );
 }

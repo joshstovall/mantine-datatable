@@ -11,6 +11,7 @@ import type { DataTableColorProps } from './DataTableColorProps';
 import type { DataTableColumnProps } from './DataTableColumnProps';
 import type { DataTableDefaultColumnProps } from './DataTableDefaultColumnProps';
 import type { DataTableEmptyStateProps } from './DataTableEmptyStateProps';
+import type { DataTableFiltersValue, DataTableWithFilterRow } from './DataTableFilters';
 import type { DataTableLoaderProps } from './DataTableLoaderProps';
 import type { DataTableOuterBorderProps } from './DataTableOuterBorderProps';
 import type { DataTablePaginationProps } from './DataTablePaginationProps';
@@ -250,6 +251,33 @@ export type DataTableProps<T = Record<string, unknown>> = {
    * Ref pointing to the table body element.
    */
   bodyRef?: ((instance: HTMLTableSectionElement | null) => void) | React.RefObject<HTMLTableSectionElement>;
+
+  /**
+   * Controlled filter values, keyed by column accessor. Mirrors the shape of
+   * `sortStatus` / `onSortStatusChange`.
+   *
+   * Optional — if omitted, `column.filter` and `column.filterCell` continue to work
+   * exactly as before with whatever uncontrolled state the consumer wires up.
+   *
+   * When provided alongside `column.columnFilter`, the built-in filter primitives read and
+   * write this map automatically.
+   */
+  filters?: DataTableFiltersValue;
+
+  /**
+   * Called when a built-in filter primitive (configured via `column.columnFilter`) updates
+   * its value. Receives the entire next filter map.
+   */
+  onFiltersChange?: (next: DataTableFiltersValue) => void;
+
+  /**
+   * Whether to render the inline filter row beneath the column titles.
+   *
+   * - `'auto'` (default): rendered when at least one visible column declares `filterCell`
+   *   or a `columnFilter` that targets the cell.
+   * - `true` / `false`: explicitly force on/off.
+   */
+  withFilterRow?: DataTableWithFilterRow;
 } & Omit<
   TableProps,
   | 'onScroll'

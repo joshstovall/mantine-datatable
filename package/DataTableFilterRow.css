@@ -1,0 +1,63 @@
+/* Filter row cells: zero padding/margin, no radius, distinct tinted background so the
+   row reads as an interactive filter band rather than a second header row.
+   Column-width stability comes from `min-width: 0` on the input wrappers below;
+   we deliberately leave `overflow` at its default so RangeSlider thumb tooltips
+   (and any other absolutely-positioned UI) aren't clipped by the cell box. */
+.mantine-datatable-filter-row > th {
+  padding: 0;
+  margin: 0;
+  vertical-align: middle;
+  font-weight: normal;
+  border-radius: 0;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-8));
+  border-top: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.mantine-datatable-filter-row-selector-cell {
+  padding: 0;
+}
+
+.mantine-datatable-filter-row-cell {
+  background-color: inherit;
+}
+
+/* Built-in primitives fill the cell flush — no border-radius, no internal padding gaps. */
+.mantine-datatable-filter-row-cell :where(.mantine-Input-wrapper, .mantine-InputWrapper-root) {
+  width: 100%;
+  min-width: 0;
+}
+
+.mantine-datatable-filter-row-cell :where(.mantine-Input-input, input, select) {
+  border-radius: 0;
+  border-color: transparent;
+  background-color: transparent;
+  min-width: 0;
+}
+
+/* Clear / close buttons inside inputs (Select, Boolean, DateRange clearable) — Mantine
+   gives them a contrasting fill out of the box; force transparent so they match the
+   bare CloseButtons used in TextColumnFilter / NumberSliderColumnFilter. */
+.mantine-datatable-filter-row-cell .mantine-Input-section button {
+  background-color: transparent;
+}
+
+/* The Group wrapping NumberRange shouldn't add gaps that push columns wider. */
+.mantine-datatable-filter-row-cell > .mantine-Group-root {
+  gap: 0;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+/* Only stretch input wrappers (e.g. the two NumberInputs of a numberRange) — leave
+   value labels, clear buttons, and the slider itself at their natural sizes so the
+   slider's own `flex: 1` can claim the remaining space. */
+.mantine-datatable-filter-row-cell > .mantine-Group-root > .mantine-InputWrapper-root {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Slider needs a touch of inset so thumbs at min/max don't get clipped by the cell border. */
+.mantine-datatable-filter-row-cell :where(.mantine-Slider-root) {
+  padding-inline: rem(10px);
+}
+

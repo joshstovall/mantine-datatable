@@ -1,4 +1,5 @@
 import type { MantineStyleProp, MantineTheme, PopoverProps } from '@mantine/core';
+import type { DataTableColumnFilter } from './DataTableColumnFilter';
 import type { DataTableColumnTextAlign } from './DataTableColumnTextAlign';
 
 export type DataTableColumn<T = Record<string, unknown>> = {
@@ -97,6 +98,40 @@ export type DataTableColumn<T = Record<string, unknown>> = {
    * If true, filter icon will be styled differently to indicate the filter is in effect.
    */
   filtering?: boolean;
+
+  /**
+   * Optional node rendered inline in the filter row (a second header row that appears beneath
+   * the column titles).
+   *
+   * Use this for filters that should always be visible — typically a single text input or
+   * select used constantly. For multi-control filters or operators, prefer
+   * {@link DataTableColumn.filter} (which renders inside a popover).
+   *
+   * Note: this property only takes care of rendering the node. The consumer is still responsible
+   * for actually filtering the records they pass in.
+   *
+   * Use the high-level {@link DataTableColumn.columnFilter} shorthand if you don't need a custom UI.
+   */
+  filterCell?: React.ReactNode;
+
+  /**
+   * Declarative, controlled filter configuration. When set, the table renders a built-in
+   * filter primitive (text, select, multiselect, number range, boolean, or custom) in the
+   * inline filter row, the popover, or both — depending on `displayIn`.
+   *
+   * The primitive reads/writes the value at `filters[accessor]` (the controlled state on
+   * `<DataTable>`), so consumers don't have to wire `useState` per column.
+   *
+   * Explicit {@link DataTableColumn.filter} or {@link DataTableColumn.filterCell} ReactNodes
+   * still take precedence over the auto-rendered primitive in their respective slots.
+   *
+   * ```tsx
+   * { accessor: 'name',   columnFilter: { kind: 'text' } }
+   * { accessor: 'status', columnFilter: { kind: 'select', options: STATUS_OPTS } }
+   * { accessor: 'fee',    columnFilter: { kind: 'numberRange', displayIn: 'popover' } }
+   * ```
+   */
+  columnFilter?: DataTableColumnFilter;
 
   /**
    * Desired column width.

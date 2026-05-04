@@ -14,10 +14,20 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { DataTableColumnGroupHeaderCell } from './DataTableColumnGroupHeaderCell';
 import { useDataTableColumnsContext } from './DataTableColumns.context';
+import { DataTableFilterRow } from './DataTableFilterRow';
 import { DataTableHeaderCell } from './DataTableHeaderCell';
 import { DataTableHeaderSelectorCell } from './DataTableHeaderSelectorCell';
+import { ColumnFilterRenderer } from './filters/ColumnFilterRenderer';
+import { columnRendersInFilterRow, isAccessorFiltering } from './filters/resolveColumnFilter';
 import type { DataTableColumnToggle } from './hooks';
-import type { DataTableColumn, DataTableColumnGroup, DataTableSelectionTrigger, DataTableSortProps } from './types';
+import type {
+  DataTableColumn,
+  DataTableColumnGroup,
+  DataTableFiltersValue,
+  DataTableSelectionTrigger,
+  DataTableSortProps,
+  DataTableWithFilterRow,
+} from './types';
 import { getGroupsAtDepth, getMaxGroupDepth, humanize } from './utils';
 
 type DataTableHeaderProps<T> = {
@@ -40,6 +50,9 @@ type DataTableHeaderProps<T> = {
   selectionColumnClassName: string | undefined;
   selectionColumnStyle: MantineStyleProp;
   withColumnBorders?: boolean;
+  filters: DataTableFiltersValue | undefined;
+  onFiltersChange: ((next: DataTableFiltersValue) => void) | undefined;
+  withFilterRow: DataTableWithFilterRow;
   ref: React.Ref<HTMLTableSectionElement>;
 };
 
@@ -63,6 +76,9 @@ export function DataTableHeader<T>({
   selectionColumnClassName,
   selectionColumnStyle,
   withColumnBorders = false,
+  filters,
+  onFiltersChange,
+  withFilterRow,
   ref,
 }: DataTableHeaderProps<T>) {
   const maxGroupDepth = groups ? getMaxGroupDepth(groups) : 0;
@@ -153,7 +169,44 @@ export function DataTableHeader<T>({
             filterPopoverDisableClickOutside,
             filtering,
             sortKey,
+            columnFilter,
           } = { ...defaultColumnProps, ...columnProps };
+
+          let resolvedFilter = filter;
+          let resolvedFiltering = filtering;
+
+          if (columnFilter && resolvedFilter === undefined) {
+            const target = columnFilter.displayIn ?? 'cell';
+            if (target === 'popover' || target === 'both') {
+              const accessorString = accessor as string;
+              const labelText =
+                columnFilter.label ?? (typeof title === 'string' ? title : humanize(accessorString));
+              resolvedFilter = ({ close }) => (
+                <ColumnFilterRenderer
+                  config={columnFilter}
+                  value={filters?.[accessorString]}
+                  setValue={(next: unknown) => {
+                    if (!onFiltersChange) return;
+                    const current = filters ?? {};
+                    if (next === undefined) {
+                      if (!(accessorString in current)) return;
+                      const { [accessorString]: _removed, ...rest } = current;
+                      onFiltersChange(rest);
+                    } else {
+                      onFiltersChange({ ...current, [accessorString]: next });
+                    }
+                  }}
+                  close={close}
+                  target="popover"
+                  ariaLabel={typeof labelText === 'string' ? `Filter ${labelText}` : `Filter ${accessorString}`}
+                />
+              );
+            }
+          }
+
+          if (columnFilter && resolvedFiltering === undefined) {
+            resolvedFiltering = isAccessorFiltering(filters, accessor as string);
+          }
 
           return (
             <DataTableHeaderCell<T>
@@ -174,14 +227,34 @@ export function DataTableHeader<T>({
               sortIcons={sortIcons}
               sortKey={sortKey}
               onSortStatusChange={onSortStatusChange}
-              filter={filter}
+              filter={resolvedFilter}
               filterPopoverProps={filterPopoverProps}
               filterPopoverDisableClickOutside={filterPopoverDisableClickOutside}
-              filtering={filtering}
+              filtering={resolvedFiltering}
             />
           );
         })}
       </TableTr>
+      {(() => {
+        if (withFilterRow === false) return null;
+        const shouldRender =
+          withFilterRow === true ||
+          columns.some((c) => {
+            if (c.hidden) return false;
+            const merged = { ...defaultColumnProps, ...c };
+            return columnRendersInFilterRow(merged.filterCell, merged.columnFilter);
+          });
+        if (!shouldRender) return null;
+        return (
+          <DataTableFilterRow<T>
+            columns={columns}
+            defaultColumnProps={defaultColumnProps}
+            selectionVisible={selectionVisible}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+          />
+        );
+      })()}
     </TableThead>
   );
 

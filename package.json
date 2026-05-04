@@ -118,9 +118,15 @@
   },
   "peerDependencies": {
     "@mantine/core": ">=9.1.1",
+    "@mantine/dates": ">=9.1.1",
     "@mantine/hooks": ">=9.1.1",
     "clsx": ">=2",
     "react": ">=19",
     "react-dom": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@mantine/dates": {
+      "optional": true
+    }
   }
 }
