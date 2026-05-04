@@ -69,7 +69,7 @@ export function useDataTableColumnToggle<T>({
 
   const [columnsToggle, _setColumnsToggle] = useLocalStorage<DataTableColumnToggle[]>({
     key: key ? `${key}-columns-toggle` : '',
-    defaultValue: key ? (defaultColumnsToggle as DataTableColumnToggle[]) : undefined,
+    defaultValue: defaultColumnsToggle as DataTableColumnToggle[],
     getInitialValueInEffect,
   });
 

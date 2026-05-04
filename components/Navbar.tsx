@@ -1,7 +1,7 @@
 import { AppShellNavbar, Box, ScrollArea } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
+import { useElementSize, useMergedRef } from '@mantine/hooks';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getNavbarButtonsInfo } from '~/lib/utils';
 import classes from './Navbar.module.css';
 import { NavbarButton } from './NavbarButton';
@@ -15,20 +15,22 @@ export type NavbarProps = {
 export function Navbar({ onClick }: NavbarProps) {
   const buttonsInfo = getNavbarButtonsInfo();
 
-  const { ref: viewportRef, height: viewportHeight } = useElementSize<HTMLDivElement>();
+  const viewportElementRef = useRef<HTMLDivElement | null>(null);
+  const { ref: viewportSizeRef, height: viewportHeight } = useElementSize<HTMLDivElement>();
+  const viewportRef = useMergedRef(viewportElementRef, viewportSizeRef);
 
   const [scrolledToTop, setScrolledToTop] = useState(true);
   const [scrolledToBottom, setScrolledToBottom] = useState(true);
 
   const onScrollPositionChange = ({ y }: { y: number }) => {
     setScrolledToTop(y === 0);
-    setScrolledToBottom(Math.ceil(viewportHeight) + y === (viewportRef.current?.scrollHeight || 0));
+    setScrolledToBottom(Math.ceil(viewportHeight) + y === (viewportElementRef.current?.scrollHeight || 0));
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setScrolledToBottom(Math.ceil(viewportHeight) === (viewportRef.current?.scrollHeight || 0));
-  }, [viewportHeight, viewportRef]);
+    setScrolledToBottom(Math.ceil(viewportHeight) === (viewportElementRef.current?.scrollHeight || 0));
+  }, [viewportHeight]);
 
   return (
     <AppShellNavbar onClick={onClick}>

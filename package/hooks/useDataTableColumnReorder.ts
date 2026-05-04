@@ -50,7 +50,7 @@ export function useDataTableColumnReorder<T>({
 
   const [columnsOrder, _setColumnsOrder] = useLocalStorage<string[]>({
     key: key ? `${key}-columns-order` : '',
-    defaultValue: key ? (defaultColumnsOrder as string[]) : undefined,
+    defaultValue: defaultColumnsOrder as string[],
     getInitialValueInEffect,
   });
 
