@@ -4,6 +4,7 @@ export * from './useDataTableColumnResize';
 export * from './useDataTableColumns';
 export * from './useDataTableColumnToggle';
 export * from './useDataTableInjectCssVariables';
+export * from './useDataTableVirtualization';
 export * from './useIsomorphicLayoutEffect';
 export * from './useLastSelectionChangeIndex';
 export * from './useMediaQueries';

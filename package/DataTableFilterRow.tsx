@@ -12,6 +12,8 @@ type DataTableFilterRowProps<T> = {
   selectionVisible: boolean;
   filters: DataTableFiltersValue | undefined;
   onFiltersChange: ((next: DataTableFiltersValue) => void) | undefined;
+  /** Column-virt visible-set. When set, render only matching columns flanked by spacers. */
+  visibleColumns: Set<number> | null;
 };
 
 export function DataTableFilterRow<T>({
@@ -20,6 +22,7 @@ export function DataTableFilterRow<T>({
   selectionVisible,
   filters,
   onFiltersChange,
+  visibleColumns,
 }: DataTableFilterRowProps<T>) {
   const setColumnValue = (accessor: string) => (next: unknown) => {
     if (!onFiltersChange) return;
@@ -36,8 +39,12 @@ export function DataTableFilterRow<T>({
   return (
     <TableTr className="mantine-datatable-filter-row">
       {selectionVisible ? <TableTh className="mantine-datatable-filter-row-selector-cell" /> : null}
-      {columns.map((columnProps) => {
+      {visibleColumns ? (
+        <TableTh className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
+      ) : null}
+      {columns.map((columnProps, columnIndex) => {
         if (columnProps.hidden) return null;
+        if (visibleColumns && !visibleColumns.has(columnIndex)) return null;
         const merged = { ...defaultColumnProps, ...columnProps };
         const accessor = merged.accessor as string;
 
@@ -78,6 +85,9 @@ export function DataTableFilterRow<T>({
           </TableTh>
         );
       })}
+      {visibleColumns ? (
+        <TableTh className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
+      ) : null}
     </TableTr>
   );
 }

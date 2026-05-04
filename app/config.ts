@@ -163,6 +163,16 @@ export const ROUTES: RouteInfo[] = [
     description: `Example: how to implement infinite scrolling with ${PRODUCT_NAME}`,
   },
   {
+    href: '/examples/row-virtualization' as Route,
+    title: 'Row virtualization',
+    description: `Example: render thousands of rows at 60fps with ${PRODUCT_NAME}`,
+  },
+  {
+    href: '/examples/row-and-column-virtualization' as Route,
+    title: 'Row + column virtualization',
+    description: `Example: virtualize both axes for very wide, very tall tables`,
+  },
+  {
     href: '/examples/searching-and-filtering',
     title: 'Searching and filtering',
     description: `Example: searching and filtering data with ${PRODUCT_NAME}`,

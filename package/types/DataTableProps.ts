@@ -13,6 +13,8 @@ import type { DataTableDefaultColumnProps } from './DataTableDefaultColumnProps'
 import type { DataTableEmptyStateProps } from './DataTableEmptyStateProps';
 import type { DataTableFiltersValue, DataTableWithFilterRow } from './DataTableFilters';
 import type { DataTableLoaderProps } from './DataTableLoaderProps';
+import type { DataTableRef } from './DataTableRef';
+import type { DataTableVirtualizationProps } from './DataTableVirtualizationProps';
 import type { DataTableOuterBorderProps } from './DataTableOuterBorderProps';
 import type { DataTablePaginationProps } from './DataTablePaginationProps';
 import type { DataTableRowClickHandler } from './DataTableRowClickHandler';
@@ -278,6 +280,24 @@ export type DataTableProps<T = Record<string, unknown>> = {
    * - `true` / `false`: explicitly force on/off.
    */
   withFilterRow?: DataTableWithFilterRow;
+
+  /**
+   * Opt-in row and/or column virtualization. Off by default — pass an object to enable.
+   *
+   * Requires `@tanstack/react-virtual` to be installed (declared as an optional peer
+   * dependency). Forces `table-layout: fixed` whenever any virtualization is on, so
+   * column widths must come from `column.width` rather than auto-sizing.
+   *
+   * See {@link DataTableVirtualizationProps} for the full config surface.
+   */
+  virtualization?: DataTableVirtualizationProps;
+
+  /**
+   * Imperative API ref. After mount, exposes `scrollToIndex` / `scrollToRecord` for
+   * programmatically scrolling the body — useful with row virtualization (e.g. to scroll
+   * to a freshly created record without paginating).
+   */
+  dataTableRef?: React.RefObject<DataTableRef<T> | null> | ((api: DataTableRef<T> | null) => void);
 } & Omit<
   TableProps,
   | 'onScroll'

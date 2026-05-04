@@ -1,0 +1,84 @@
+/* Force fixed table layout whenever virtualization is on. With auto layout,
+   mounting/unmounting cells during scroll triggers per-row column re-measurement
+   and visible width flicker. Authoritative widths must come from `column.width`. */
+.mantine-datatable[data-virt='rows'] table,
+.mantine-datatable[data-virt='columns'] table,
+.mantine-datatable[data-virt='both'] table {
+  table-layout: fixed;
+}
+
+/* Suppress hover/pointer-events on rows mid-scroll. The scroll listener in
+   useDataTableVirtualization toggles `data-virt-scrolling` on the scroll
+   viewport — purely DOM, no React commit. */
+.mantine-datatable-scroll-area[data-virt-scrolling] tbody tr {
+  pointer-events: none;
+}
+
+/* Striping under row virt: Mantine's `<Table striped>` colors `tr:nth-of-type(odd)`
+   counted from the rendered DOM position. With virt that includes the leading spacer
+   row, so colors flip every time the spacer height crosses an even/odd boundary on
+   scroll. Override with attribute-based striping keyed on `data-stripe` (which is
+   computed from the record index and is therefore scroll-stable). */
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr:not([data-row-index]),
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr:not([data-row-index]) {
+  /* Spacer rows: never tinted. */
+  background: transparent !important;
+}
+
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped='odd'] tbody tr[data-stripe='odd'],
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped='odd'] tbody tr[data-stripe='odd'],
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr[data-stripe='odd'],
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr[data-stripe='odd'] {
+  background-color: var(--mantine-datatable-striped-color) !important;
+}
+
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped='even'] tbody tr[data-stripe='even'],
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped='even'] tbody tr[data-stripe='even'] {
+  background-color: var(--mantine-datatable-striped-color) !important;
+}
+
+/* Mantine's default striping fires on `:nth-of-type` and would now double-color rows
+   that already match our attribute rule. Suppress it inside virt-enabled tables. */
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(odd):not([data-stripe='odd']),
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(odd):not([data-stripe='odd']),
+.mantine-datatable[data-virt='rows'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(even):not([data-stripe='even']),
+.mantine-datatable[data-virt='both'] .mantine-datatable-table[data-striped] tbody tr:nth-of-type(even):not([data-stripe='even']) {
+  background: transparent !important;
+}
+
+/* Spacer rows reserve vertical space for the virtualized off-viewport rows.
+   They render a single `<td colspan>` filling the row visually with nothing. */
+.mantine-datatable-virtualization-spacer-row {
+  /* No own background — let it disappear into the table's body. */
+  pointer-events: none;
+}
+
+.mantine-datatable-virtualization-spacer-row > td {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Spacer COLUMNS: leading + trailing cells sized via CSS variables written by
+   useDataTableVirtualization → useLayoutEffect on the scroll viewport. The
+   variable channel exists specifically so widths never propagate as React
+   props on horizontal scroll ticks (would torch the row/cell memo chain). */
+.mantine-datatable-virt-leading-spacer,
+.mantine-datatable-virt-trailing-spacer {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  pointer-events: none;
+}
+
+.mantine-datatable-virt-leading-spacer {
+  width: var(--mantine-datatable-virt-col-leading-width, 0);
+  min-width: var(--mantine-datatable-virt-col-leading-width, 0);
+  max-width: var(--mantine-datatable-virt-col-leading-width, 0);
+}
+
+.mantine-datatable-virt-trailing-spacer {
+  width: var(--mantine-datatable-virt-col-trailing-width, 0);
+  min-width: var(--mantine-datatable-virt-col-trailing-width, 0);
+  max-width: var(--mantine-datatable-virt-col-trailing-width, 0);
+}

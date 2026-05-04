@@ -53,6 +53,9 @@ type DataTableHeaderProps<T> = {
   filters: DataTableFiltersValue | undefined;
   onFiltersChange: ((next: DataTableFiltersValue) => void) | undefined;
   withFilterRow: DataTableWithFilterRow;
+  /** When set (column virt on) the title row renders only columns whose index is in
+   *  the Set, flanked by leading/trailing spacer `<th>`s sized via CSS variables. */
+  visibleColumns: Set<number> | null;
   ref: React.Ref<HTMLTableSectionElement>;
 };
 
@@ -79,6 +82,7 @@ export function DataTableHeader<T>({
   filters,
   onFiltersChange,
   withFilterRow,
+  visibleColumns,
   ref,
 }: DataTableHeaderProps<T>) {
   const maxGroupDepth = groups ? getMaxGroupDepth(groups) : 0;
@@ -148,9 +152,13 @@ export function DataTableHeader<T>({
 
       <TableTr>
         {!groups && allRecordsSelectorCell}
+        {visibleColumns ? (
+          <th className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
+        ) : null}
 
         {columns.map(({ hidden, ...columnProps }, index) => {
           if (hidden) return null;
+          if (visibleColumns && !visibleColumns.has(index)) return null;
 
           const {
             accessor,
@@ -234,6 +242,9 @@ export function DataTableHeader<T>({
             />
           );
         })}
+        {visibleColumns ? (
+          <th className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
+        ) : null}
       </TableTr>
       {(() => {
         if (withFilterRow === false) return null;
@@ -252,6 +263,7 @@ export function DataTableHeader<T>({
             selectionVisible={selectionVisible}
             filters={filters}
             onFiltersChange={onFiltersChange}
+            visibleColumns={visibleColumns}
           />
         );
       })()}

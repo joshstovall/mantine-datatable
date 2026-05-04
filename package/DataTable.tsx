@@ -16,10 +16,11 @@ import { getTableCssVariables } from './cssVariables';
 import {
   useDataTableColumns,
   useDataTableInjectCssVariables,
+  useDataTableVirtualization,
   useLastSelectionChangeIndex,
   useRowExpansion,
 } from './hooks';
-import type { DataTableProps } from './types';
+import type { DataTableProps, DataTableRef } from './types';
 import { TEXT_SELECTION_DISABLED } from './utilityClasses';
 import { differenceBy, flattenColumns, getRecordId, uniqBy } from './utils';
 
@@ -134,6 +135,8 @@ export function DataTable<T>({
   filters,
   onFiltersChange,
   withFilterRow = 'auto',
+  virtualization,
+  dataTableRef,
   ...otherProps
 }: DataTableProps<T>) {
   const effectiveColumns = useMemo(() => {
@@ -166,6 +169,66 @@ export function DataTable<T>({
   const mergedTableRef = useMergedRef(refs.table, tableRef);
   const mergedViewportRef = useMergedRef(refs.scrollViewport, scrollViewportRef);
   const rowExpansionInfo = useRowExpansion<T>({ rowExpansion, records, idAccessor });
+
+  // Row virtualization is incompatible with rowExpansion (per-row height changes invalidate
+  // the offset math). Quietly disable when both are set.
+  const virtualizationConfig = useMemo(() => {
+    if (!virtualization) return undefined;
+    if (rowExpansion && virtualization.rows !== false) {
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[mantine-datatable] virtualization.rows is incompatible with rowExpansion — virtualization disabled.'
+        );
+      }
+      return undefined;
+    }
+    return virtualization;
+  }, [virtualization, rowExpansion]);
+
+  const virt = useDataTableVirtualization<T>({
+    config: virtualizationConfig,
+    recordsCount: records?.length ?? 0,
+    columns: effectiveColumns,
+    hasPinnedColumns: !!pinFirstColumn || !!pinLastColumn,
+    hasGroups: !!groups,
+    scrollViewportRef: refs.scrollViewport as RefObject<HTMLDivElement | null>,
+  });
+
+  // Imperative API: scrollToIndex / scrollToRecord. Wired into `dataTableRef` if provided.
+  // Records is captured by reference each render — kept fresh so scrollToRecord finds the
+  // current index even after the consumer re-orders / paginates.
+  useEffect(() => {
+    if (!dataTableRef) return;
+    const recordsSnapshot = records ?? [];
+    const idAccessorSnapshot = idAccessor;
+    const api: DataTableRef<T> = {
+      scrollToIndex: (index, options) => {
+        virt.rowVirtualizer?.scrollToIndex(index, {
+          align: options?.align ?? 'auto',
+          behavior: options?.behavior ?? 'auto',
+        });
+      },
+      scrollToRecord: (record, options) => {
+        if (!virt.rowVirtualizer) return;
+        const targetId = getRecordId(record, idAccessorSnapshot);
+        const idx = recordsSnapshot.findIndex(
+          (r) => r === record || getRecordId(r, idAccessorSnapshot) === targetId
+        );
+        if (idx < 0) return;
+        virt.rowVirtualizer.scrollToIndex(idx, {
+          align: options?.align ?? 'auto',
+          behavior: options?.behavior ?? 'auto',
+        });
+      },
+    };
+    if (typeof dataTableRef === 'function') dataTableRef(api);
+    else dataTableRef.current = api;
+    return () => {
+      if (typeof dataTableRef === 'function') dataTableRef(null);
+      else dataTableRef.current = null;
+    };
+  }, [dataTableRef, records, idAccessor, virt.rowVirtualizer]);
 
   // Track when we should reset scroll due to pagination, but defer until data is rendered
   const resetScrollPending = useRef(false);
@@ -258,6 +321,15 @@ export function DataTable<T>({
       <Box
         ref={refs.root}
         {...marginProperties}
+        data-virt={
+          virt.rowsEnabled && virt.columnsEnabled
+            ? 'both'
+            : virt.rowsEnabled
+              ? 'rows'
+              : virt.columnsEnabled
+                ? 'columns'
+                : undefined
+        }
         className={clsx(
           'mantine-datatable',
           { 'mantine-datatable-with-border': withTableBorder },
@@ -345,12 +417,25 @@ export function DataTable<T>({
                     filters={filters}
                     onFiltersChange={onFiltersChange}
                     withFilterRow={withFilterRow}
+                    visibleColumns={virt.visibleColumns}
                   />
                 </DataTableColumnsProvider>
               )}
               <tbody ref={bodyRef}>
+                {recordsLength && virt.rowsEnabled && virt.leadingRowsHeight > 0 ? (
+                  <tr
+                    aria-hidden="true"
+                    className="mantine-datatable-virtualization-spacer-row"
+                    style={{ height: virt.leadingRowsHeight }}
+                  >
+                    <td colSpan={9999} />
+                  </tr>
+                ) : null}
                 {recordsLength ? (
-                  records.map((record, index) => {
+                  (virt.rowsEnabled
+                    ? virt.virtualRows.map((vr) => ({ record: records[vr.index] as T, index: vr.index }))
+                    : records.map((record, index) => ({ record, index }))
+                  ).map(({ record, index }) => {
                     const recordId = getRecordId(record, idAccessor);
                     const isSelected = selectedRecordIds?.includes(recordId) || false;
 
@@ -418,12 +503,22 @@ export function DataTable<T>({
                         selectionColumnStyle={selectionColumnStyle}
                         idAccessor={idAccessor as string}
                         rowFactory={rowFactory}
+                        visibleColumns={virt.visibleColumns}
                       />
                     );
                   })
                 ) : (
                   <DataTableEmptyRow />
                 )}
+                {recordsLength && virt.rowsEnabled && virt.trailingRowsHeight > 0 ? (
+                  <tr
+                    aria-hidden="true"
+                    className="mantine-datatable-virtualization-spacer-row"
+                    style={{ height: virt.trailingRowsHeight }}
+                  >
+                    <td colSpan={9999} />
+                  </tr>
+                ) : null}
               </tbody>
 
               {effectiveColumns.some(({ footer }) => footer) && (
@@ -435,6 +530,7 @@ export function DataTable<T>({
                   defaultColumnProps={defaultColumnProps}
                   selectionVisible={selectionColumnVisible}
                   selectorCellShadowVisible={selectorCellShadowVisible}
+                  visibleColumns={virt.visibleColumns}
                 />
               )}
             </Table>

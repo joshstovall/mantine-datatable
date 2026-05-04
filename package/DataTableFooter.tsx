@@ -11,6 +11,8 @@ type DataTableFooterProps<T> = {
   defaultColumnProps: DataTableDefaultColumnProps<T> | undefined;
   selectionVisible: boolean;
   selectorCellShadowVisible: boolean;
+  /** Column-virt visible-set. When set, render only matching columns flanked by spacers. */
+  visibleColumns: Set<number> | null;
   ref: React.Ref<HTMLTableSectionElement>;
 };
 
@@ -21,14 +23,19 @@ export function DataTableFooter<T>({
   defaultColumnProps,
   selectionVisible,
   selectorCellShadowVisible,
+  visibleColumns,
   ref,
 }: DataTableFooterProps<T>) {
   return (
     <TableTfoot ref={ref} className={clsx('mantine-datatable-footer', className)} style={style}>
       <TableTr>
         {selectionVisible && <DataTableFooterSelectorPlaceholderCell shadowVisible={selectorCellShadowVisible} />}
-        {columns.map(({ hidden, ...columnProps }) => {
+        {visibleColumns ? (
+          <td className="mantine-datatable-virt-leading-spacer" aria-hidden="true" />
+        ) : null}
+        {columns.map(({ hidden, ...columnProps }, index) => {
           if (hidden) return null;
+          if (visibleColumns && !visibleColumns.has(index)) return null;
 
           const {
             accessor,
@@ -56,6 +63,9 @@ export function DataTableFooter<T>({
             />
           );
         })}
+        {visibleColumns ? (
+          <td className="mantine-datatable-virt-trailing-spacer" aria-hidden="true" />
+        ) : null}
       </TableTr>
     </TableTfoot>
   );
