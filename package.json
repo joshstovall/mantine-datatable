@@ -1,9 +1,10 @@
 {
-  "name": "mantine-datatable",
-  "version": "8.3.13",
-  "description": "The lightweight, dependency-free, dark-theme aware table component for your Mantine UI data-rich applications, featuring asynchronous data loading support, pagination, intuitive Gmail-style additive batch rows selection, column sorting, custom cell data rendering, row expansion, nesting, context menus, and much more",
+  "name": "@joshstovall/mantine-datatable",
+  "version": "9.0.0-fork.1",
+  "description": "Community fork of mantine-datatable, updated for Mantine v9 with declarative column filters and opt-in row/column virtualization. The lightweight, dependency-free, dark-theme aware table component for Mantine UI data-rich applications, featuring asynchronous data loading, pagination, intuitive Gmail-style additive batch rows selection, column sorting, custom cell rendering, row expansion, nesting, context menus, and more.",
   "keywords": [
     "mantine",
+    "mantine-v9",
     "data",
     "table",
     "grid",
@@ -16,7 +17,10 @@
     "sorting",
     "pagination",
     "context menu",
+    "filters",
+    "virtualization",
     "react",
+    "react-19",
     "component",
     "react server components",
     "typescript",
@@ -25,21 +29,26 @@
     "ux",
     "user experience"
   ],
-  "repository": "icflorescu/mantine-datatable",
-  "homepage": "https://icflorescu.github.io/mantine-datatable/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshstovall/mantine-datatable.git"
+  },
+  "homepage": "https://github.com/joshstovall/mantine-datatable#readme",
   "bugs": {
-    "url": "https://github.com/icflorescu/mantine-datatable/issues"
+    "url": "https://github.com/joshstovall/mantine-datatable/issues"
   },
   "license": "MIT",
   "author": {
-    "name": "Ionut-Cristian Florescu",
-    "email": "ionut.florescu@gmail.com",
-    "url": "https://github.com/icflorescu"
+    "name": "Joshua Stovall",
+    "url": "https://github.com/joshstovall"
   },
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/icflorescu"
-  },
+  "contributors": [
+    {
+      "name": "Ionut-Cristian Florescu",
+      "email": "ionut.florescu@gmail.com",
+      "url": "https://github.com/icflorescu"
+    }
+  ],
   "files": [
     "./dist",
     "./README.md",

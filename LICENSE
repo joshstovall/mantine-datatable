@@ -1,6 +1,8 @@
 MIT License
 
 Copyright (c) 2022 – 2025 Ionuț-Cristian Florescu
+Copyright (c) 2026 Joshua Stovall (fork modifications: Mantine v9 support,
+    declarative column filters, row/column virtualization, and related work)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -3,6 +3,22 @@
 The following is a list of notable changes to the Mantine DataTable component.  
 Minor versions that are not listed in the changelog are bug fixes and small improvements.
 
+---
+
+## Fork: `@joshstovall/mantine-datatable`
+
+### 9.0.0-fork.1 (2026-05-04)
+
+Initial fork on top of upstream `8.3.13`. Targets Mantine v9 / React 19.2+.
+
+- Mantine v9 / React 19.2+ compatibility.
+- Declarative column filters (`columnFilter` + controlled `filters` / `onFiltersChange` + inline filter row).
+- Opt-in row + column virtualization (`virtualization` prop, `dataTableRef.scrollToRecord`); requires `@tanstack/react-virtual` (optional peer).
+
+---
+
+## Upstream history
+
 ## 8.3.13 (2026-01-20)
 
 - Update deps to ensure compatibility with Mantine 8.3.13

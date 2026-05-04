@@ -1,21 +1,20 @@
-# Mantine DataTable
+# @joshstovall/mantine-datatable
 
-![Publish NPM & deploy docs workflow](https://github.com/icflorescu/mantine-datatable/actions/workflows/publish-and-deploy.yml/badge.svg)  
-[![NPM version][npm-image]][npm-url]
-[![License][license-image]][license-url]
-[![Stars][stars-image]][stars-url]
-[![Last commit][last-commit-image]][repo-url]
-[![Closed issues][closed-issues-image]][closed-issues-url]
-[![Downloads][downloads-image]][npm-url]
-[![Language][language-image]][repo-url]
-[![Sponsor the author][sponsor-image]][sponsor-url]
+> **Community fork of [`mantine-datatable`](https://github.com/icflorescu/mantine-datatable)** by [Ionuț-Cristian Florescu](https://github.com/icflorescu), maintained by [@joshstovall](https://github.com/joshstovall).
+>
+> **What's added in this fork:**
+>
+> - **Mantine v9 / React 19.2+ support** — upstream still ships v8.x at the time of this fork.
+> - **Declarative column filters** — `column.columnFilter: { kind: 'text' | 'select' | 'multiselect' | 'numberRange' | 'numberSlider' | 'boolean' | 'dateRange' | 'custom' }`, plus controlled `filters` / `onFiltersChange` props and an inline filter row beneath the column titles.
+> - **Opt-in row + column virtualization** powered by `@tanstack/react-virtual` (optional peer) — render thousands of rich rows at 60fps with a memo chain engineered for zero React renders during in-column scroll. Includes a `scrollToRecord` / `scrollToIndex` imperative API.
+>
+> Most additions here will be proposed upstream. If they land in the canonical package, this fork will be deprecated. **Use the original package if your project doesn't yet need Mantine v9.**
 
 The [lightweight](https://bundlephobia.com/package/mantine-datatable), dependency-free, **dark-theme aware** table component for your Mantine UI data-rich applications, featuring asynchronous data loading support, pagination, intuitive Gmail-style additive batch rows selection, column sorting, custom cell data rendering, row expansion, nesting, context menus, and [much more](https://icflorescu.github.io/mantine-datatable/).
 
 [![Mantine DataTable](https://user-images.githubusercontent.com/581999/294180790-93289cec-4d73-47b5-988f-8c93dd3443fe.png)](https://icflorescu.github.io/mantine-datatable/)
 
-**⚠️ Mantine DataTable V8.x is compatible with Mantine V8.x.**  
-**💡 If you're looking for the old version that works with [Mantine V6](https://v6.mantine.dev), head over to [Mantine DataTable V6](https://icflorescu.github.io/mantine-datatable-v6).**
+**⚠️ This fork targets Mantine v9.x.** Use [the original `mantine-datatable`](https://github.com/icflorescu/mantine-datatable) for Mantine v8 — and [Mantine DataTable V6](https://icflorescu.github.io/mantine-datatable-v6) for Mantine v6.
 
 ## Features
 
