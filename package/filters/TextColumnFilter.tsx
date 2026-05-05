@@ -1,5 +1,5 @@
 import { CloseButton, TextInput } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DataTableColumnFilterText } from '../types';
 
 type TextColumnFilterProps = {
@@ -14,24 +14,46 @@ export function TextColumnFilter({ config, value, setValue, ariaLabel }: TextCol
   const [localValue, setLocalValue] = useState(incoming);
   const debounceMs = config.debounceMs ?? 0;
 
+  // Keep a ref to the latest setValue so effects always call the most up-to-date
+  // version without needing to include it in deps (which would cause loops).
+  const setValueRef = useRef(setValue);
+  setValueRef.current = setValue;
+
+  // Track the last value we flushed upstream so we never re-flush the same value.
+  const lastFlushedRef = useRef(incoming);
+
   useEffect(() => {
     setLocalValue(incoming);
-    // We re-sync only when the controlled value changes externally.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    lastFlushedRef.current = incoming;
   }, [incoming]);
 
   useEffect(() => {
     if (localValue === incoming) return;
+    // Already flushed this exact value — skip.
+    if (localValue === lastFlushedRef.current) return;
+
+    const flush = () => {
+      const next = localValue === '' ? undefined : localValue;
+      lastFlushedRef.current = localValue;
+      setValueRef.current(next);
+    };
+
     if (debounceMs <= 0) {
-      setValue(localValue === '' ? undefined : localValue);
-      return;
+      // Use a microtask to batch multiple rapid keystrokes into a single flush
+      // and break the synchronous update chain that can exceed React's max depth.
+      const id = requestAnimationFrame(flush);
+      return () => cancelAnimationFrame(id);
     }
-    const id = setTimeout(() => {
-      setValue(localValue === '' ? undefined : localValue);
-    }, debounceMs);
+    const id = setTimeout(flush, debounceMs);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localValue, debounceMs]);
+  }, [localValue, debounceMs, incoming]);
+
+  const handleClear = useCallback(() => {
+    setLocalValue('');
+    lastFlushedRef.current = '';
+    setValueRef.current(undefined);
+  }, []);
 
   return (
     <TextInput
@@ -45,10 +67,7 @@ export function TextColumnFilter({ config, value, setValue, ariaLabel }: TextCol
           <CloseButton
             size="xs"
             aria-label="Clear filter"
-            onClick={() => {
-              setLocalValue('');
-              setValue(undefined);
-            }}
+            onClick={handleClear}
           />
         ) : null
       }

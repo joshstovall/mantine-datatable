@@ -1,5 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks';
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react';
 import type { DataTableColumn } from '../types/DataTableColumn';
 
 type DataTableColumnWidth = Record<string, string | number>;
@@ -70,8 +70,13 @@ export function useDataTableColumnResize<T>({
       }));
   }, [columns]);
 
+  // Generate a unique fallback key per instance to avoid cross-contamination
+  // when no storeColumnsKey is provided.
+  const instanceId = useId();
+  const storageKey = key ? `${key}-columns-width` : `__mdt_resize_${instanceId}`;
+
   const [storedColumnsWidth, setStoredColumnsWidth] = useLocalStorage<DataTableColumnWidth[]>({
-    key: key ? `${key}-columns-width` : '',
+    key: storageKey,
     defaultValue: key ? getDefaultColumnsWidth() : undefined,
     getInitialValueInEffect: false, // We'll handle initialization manually
   });

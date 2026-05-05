@@ -1,4 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks';
+import { useId } from 'react';
 import type { DataTableColumn } from '../types/DataTableColumn';
 
 export type DataTableColumnToggle = {
@@ -67,8 +68,13 @@ export function useDataTableColumnToggle<T>({
       toggled: column.defaultToggle === undefined ? true : column.defaultToggle,
     }));
 
+  // Generate a unique fallback key per instance to avoid cross-contamination
+  // when no storeColumnsKey is provided.
+  const instanceId = useId();
+  const storageKey = key ? `${key}-columns-toggle` : `__mdt_toggle_${instanceId}`;
+
   const [columnsToggle, _setColumnsToggle] = useLocalStorage<DataTableColumnToggle[]>({
-    key: key ? `${key}-columns-toggle` : '',
+    key: storageKey,
     defaultValue: defaultColumnsToggle as DataTableColumnToggle[],
     getInitialValueInEffect,
   });

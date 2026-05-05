@@ -1,4 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks';
+import { useId, useState } from 'react';
 import type { DataTableColumn } from '../types/DataTableColumn';
 
 /**
@@ -48,8 +49,13 @@ export function useDataTableColumnReorder<T>({
   // Default columns order is the order of the columns in the array
   const defaultColumnsOrder = (columns && columns.map((column) => column.accessor)) || [];
 
+  // Generate a unique fallback key per instance to avoid cross-contamination
+  // when no storeColumnsKey is provided.
+  const instanceId = useId();
+  const storageKey = key ? `${key}-columns-order` : `__mdt_reorder_${instanceId}`;
+
   const [columnsOrder, _setColumnsOrder] = useLocalStorage<string[]>({
-    key: key ? `${key}-columns-order` : '',
+    key: storageKey,
     defaultValue: defaultColumnsOrder as string[],
     getInitialValueInEffect,
   });
