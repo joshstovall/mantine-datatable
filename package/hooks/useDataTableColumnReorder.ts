@@ -1,5 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks';
-import { useId, useState } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import type { DataTableColumn } from '../types/DataTableColumn';
 
 /**
@@ -70,22 +70,27 @@ export function useDataTableColumnReorder<T>({
     setColumnsOrder(defaultColumnsOrder as string[]);
   };
 
-  // If no key is provided, return unmanaged state
-  if (!key) {
-    return {
-      columnsOrder: columnsOrder as string[],
-      setColumnsOrder,
-      resetColumnsOrder,
-    } as const;
-  }
+  // Align order with current columns. When no key is provided the state is
+  // unmanaged, so it is returned as-is.
+  const alignedColumnsOrder = useMemo(
+    () => (key ? alignColumnsOrder(columnsOrder, columns) : (columnsOrder as string[])),
+    [key, columnsOrder, columns]
+  );
 
-  // Align order with current columns
-  const alignedColumnsOrder = alignColumnsOrder(columnsOrder, columns);
-  const prevColumnsOrder = JSON.stringify(columnsOrder);
+  const serializedColumnsOrder = JSON.stringify(columnsOrder);
+  const serializedAlignedColumnsOrder = JSON.stringify(alignedColumnsOrder);
 
-  if (JSON.stringify(alignedColumnsOrder) !== prevColumnsOrder) {
-    setColumnsOrder(alignedColumnsOrder);
-  }
+  // Persist the aligned order *after* commit, never during render. The
+  // `useLocalStorage` setter synchronously dispatches a window event whose
+  // listener is wrapped in `useEffectEvent`, and React throws if such a
+  // function is invoked while rendering ("A function wrapped in useEffectEvent
+  // can't be called during rendering"). This fires whenever the column set
+  // changes shape — e.g. tables whose columns are derived from fetched data.
+  useEffect(() => {
+    if (!key || serializedAlignedColumnsOrder === serializedColumnsOrder) return;
+    _setColumnsOrder(alignedColumnsOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized values stand in for the arrays
+  }, [key, serializedColumnsOrder, serializedAlignedColumnsOrder, _setColumnsOrder]);
 
   return {
     columnsOrder: alignedColumnsOrder,

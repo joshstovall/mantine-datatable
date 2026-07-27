@@ -7,6 +7,10 @@ Minor versions that are not listed in the changelog are bug fixes and small impr
 
 ## Fork: `@joshstovall/mantine-datatable`
 
+### 9.2.2 (2026-07-27)
+
+- Fix `useDataTableColumns` crashing with _"A function wrapped in useEffectEvent can't be called during rendering"_ on React 19.2 + Mantine 9. `useDataTableColumnReorder` / `useDataTableColumnToggle` re-synced persisted state with the current column definitions via a render-phase `setState`; Mantine's `useLocalStorage` setter synchronously dispatches a window event whose listener is wrapped in `useEffectEvent`, which React forbids invoking mid-render. The alignment now happens in `useMemo` (so the first render still returns the correct columns) and is persisted in a `useEffect` after commit. Mainly affects tables whose columns are derived from asynchronously fetched data, and any table whose persisted column set has drifted from its definitions.
+
 ### 9.2.0 (2026-05-04)
 
 - Column virtualization now coexists with `pinFirstColumn` / `pinLastColumn` — pinned cells render outside the virtualizer so sticky positioning, striped backgrounds, and footer alignment all survive. Column groups (multi-row headers) remain incompatible and are logged + ignored.

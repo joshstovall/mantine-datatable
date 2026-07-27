@@ -1,5 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks';
-import { useId } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import type { DataTableColumn } from '../types/DataTableColumn';
 
 export type DataTableColumnToggle = {
@@ -91,22 +91,27 @@ export function useDataTableColumnToggle<T>({
     setColumnsToggle(defaultColumnsToggle as DataTableColumnToggle[]);
   };
 
-  // If no key is provided, return unmanaged state
-  if (!key) {
-    return {
-      columnsToggle: columnsToggle as DataTableColumnToggle[],
-      setColumnsToggle,
-      resetColumnsToggle,
-    } as const;
-  }
+  // Align toggle state with current columns. When no key is provided the state
+  // is unmanaged, so it is returned as-is.
+  const alignedColumnsToggle = useMemo(
+    () => (key ? alignColumnsToggle(columnsToggle, columns) : (columnsToggle as DataTableColumnToggle[])),
+    [key, columnsToggle, columns]
+  );
 
-  // Align toggle state with current columns
-  const alignedColumnsToggle = alignColumnsToggle(columnsToggle, columns);
-  const prevColumnsToggle = JSON.stringify(columnsToggle);
+  const serializedColumnsToggle = JSON.stringify(columnsToggle);
+  const serializedAlignedColumnsToggle = JSON.stringify(alignedColumnsToggle);
 
-  if (JSON.stringify(alignedColumnsToggle) !== prevColumnsToggle) {
-    setColumnsToggle(alignedColumnsToggle);
-  }
+  // Persist the aligned toggle state *after* commit, never during render. The
+  // `useLocalStorage` setter synchronously dispatches a window event whose
+  // listener is wrapped in `useEffectEvent`, and React throws if such a
+  // function is invoked while rendering ("A function wrapped in useEffectEvent
+  // can't be called during rendering"). This fires whenever the column set
+  // changes shape — e.g. tables whose columns are derived from fetched data.
+  useEffect(() => {
+    if (!key || serializedAlignedColumnsToggle === serializedColumnsToggle) return;
+    _setColumnsToggle(alignedColumnsToggle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized values stand in for the arrays
+  }, [key, serializedColumnsToggle, serializedAlignedColumnsToggle, _setColumnsToggle]);
 
   return {
     columnsToggle: alignedColumnsToggle,
